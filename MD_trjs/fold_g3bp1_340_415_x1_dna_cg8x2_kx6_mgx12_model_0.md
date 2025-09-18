@@ -1,5 +1,5 @@
 ### fold_g3bp1_340_415_x1_dna_cg8x2_kx6_mgx12_model_0 - ??, Model 1
-[Back](https://intbio.github.io/2025_ZDNA_Proteins_project)
+[Back](https://intbio.github.io/2025_ZDNA_Proteins_project/MD_trjs/md_trajectories)
 
 <html lang="en">
   <head>
@@ -50,6 +50,7 @@
 <script>
   var pdb="trj/fold_g3bp1_340_415_x1_dna_cg8x2_kx6_mgx12_model_0_filtered.pdb"
   var xtc="trj/fold_g3bp1_340_415_x1_dna_cg8x2_kx6_mgx12_model_0_filtered.xtc"
+  var csv=" "
   var trjstep = 0.1;
   $(document).ready(function() {
     window.stage = new NGL.Stage("viewport0", {
