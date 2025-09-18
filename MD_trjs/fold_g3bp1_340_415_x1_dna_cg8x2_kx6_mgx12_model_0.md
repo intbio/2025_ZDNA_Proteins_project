@@ -67,7 +67,14 @@
         ["red", "_O"],
         ["grey", "*"]
       ], "DA");
-
+     var residues = NGL.ColormakerRegistry.addSelectionScheme([
+        ["blue", "40 and ARG"],
+	["lightcyan", "42 and ARG"],
+	["cyan", "49 and ARG"],
+        ["green", "41 and TYR"],
+	["pink", "39 and HIS"],
+        ["white", "*"]
+      ], "protein");
       
       var shape = new NGL.Shape( "Axes" );
 			shape.addArrow( [ 0, 0, -35 ], [ 0, 0, 35 ], [ 0.04, 0.8, 0.03 ], 2.0 );
@@ -88,17 +95,19 @@
         radius: 3.5
       });
       window.arg_lys_selection.setVisibility(false);
-
-      window.xticks_selection = nucl.addRepresentation('hyperball', {
-        "sele": " not _H",
-        color: hyper_scheme,
+      
+      window.dna_latch_selection = nucl.addRepresentation('hyperball', {
+        "sele": "39-49 and (:A or :E) and not _H",
+        color: residues,
         radius: 3.5
       });
-      window.xticks_selection.setVisibility(false);
+      window.dna_latch_selection.setVisibility(false);
       
+      //H3 39-49 - назвать H3 39-49 DNA latch
+
 
       nucl.addRepresentation('cartoon', {
-        "sele": ":A",
+        "sele": ":A ",
         "color": 0x020AED,
         "aspectRatio": aspectRatio,
         'radiusScale': radiusScale,
@@ -257,9 +266,9 @@
       var state = $(this).is(":checked");
       window.arg_lys_selection.setVisibility(state);
     }
-    function toggle_xticks_visibility() {
+    function toggle_latch_visibility() {
       var state = $(this).is(":checked");
-      window.xticks_selection.setVisibility(state);
+      window.dna_latch_selection.setVisibility(state);
     }
     
     function toggle_axes_visibility() {
@@ -285,7 +294,160 @@
       width = 800 - margin.left - margin.right,
       height = 200 - margin.top - margin.bottom;
 
+    // append the svg object to the body of the page
+    var svg = d3.select("#my_dataviz")
+      .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform",
+        "translate(" + margin.left + "," + margin.top + ")");
+    const tooltipLine = svg.append('line');
+    var x = d3.scaleLinear();
+    var y = d3.scaleLinear();
+    //Read the data
+    d3.csv(csvfile,
 
+      // When reading the csv, I must format variables:
+
+      // Now I can use this dataset:
+      function(data) {
+        data.forEach(function(d) {
+          d.Frame = d.Frame / 100;
+        });
+        // Add X axis --> it is a date format
+
+        x.domain([0, d3.max(data, function(d) {
+            return +d.Frame;
+          })])
+          .range([0, width])
+
+        svg.append("g")
+          .attr("transform", "translate(0," + height + ")")
+          .attr("class", "axis")
+          .call(d3.axisBottom(x)
+            .tickFormat(function(d) {
+              return d / 10;
+            }))
+
+        // Add Y axis
+
+        y.domain([0, Math.max(d3.max(data, function(d) {
+            return +d.prox;
+          }),
+          d3.max(data, function(d) {
+            return +d.dist;
+          }))
+          ])
+          .range([height, 0]);
+        svg.append("g")
+          .call(d3.axisLeft(y));
+
+
+        // Add the line
+        svg.append("path")
+          .datum(data)
+          .attr("fill", "none")
+          .attr("stroke", "steelblue")
+          .attr("opacity", 0.4)
+          .attr("stroke-width", 2)
+          .attr("d", d3.line()
+            .x(function(d) {
+              return x(d.Frame)
+            })
+            .y(function(d) {
+              return y(d.prox)
+            })
+          )
+        svg.append("path")
+          .datum(data)
+          .attr("fill", "none")
+          .attr("stroke", "orange")
+          .attr("opacity", 0.4)
+          .attr("stroke-width", 2)
+          .attr("d", d3.line()
+            .x(function(d) {
+              return x(d.Frame)
+            })
+            .y(function(d) {
+              return y(d.dist)
+            })
+          )
+         svg.append("path")
+          .datum(data)
+          .attr("fill", "none")
+          .attr("stroke", "steelblue")
+          .attr("stroke-width", 3)
+          .attr("d", d3.line()
+            .x(function(d) {
+              return x(d.Frame)
+            })
+            .y(function(d) {
+              return y(d.prox_filtered)
+            })
+          )
+         svg.append("path")
+          .datum(data)
+          .attr("fill", "none")
+          .attr("stroke", "orange")
+          .attr("stroke-width", 3)
+          .attr("d", d3.line()
+            .x(function(d) {
+              return x(d.Frame)
+            })
+            .y(function(d) {
+              return y(d.dist_filtered)
+            })
+          )
+          svg.append("text")
+          .attr("class", "x label")
+          .attr("text-anchor", "end")
+          .attr("x", width-width/2)
+          .attr("y", height + 35)
+          .text("Time, μs");
+          
+          svg.append("text")
+          .attr("class", "y label")
+          .attr("text-anchor", "end")
+          .attr("y", -45)
+          .attr("dy", ".75em")
+          .attr("transform", "rotate(-90)")
+          .text("Unwrapped base pairs");
+          
+        tipBox = svg.append('rect')
+          .attr('width', width)
+          .attr('height', height)
+          .attr('opacity', 0)
+          .on('mousemove', drawTooltip)
+          .on('mouseout', removeTooltip);
+        const tooltip = d3.select('#tooltip');
+
+
+        function removeTooltip() {
+          if (tooltip) tooltip.style('display', 'none');
+        }
+
+        function drawTooltip() {
+          const frame = Math.floor((x.invert(d3.mouse(tipBox.node())[0])));
+          window.traj.player.pause();
+          window.traj.setFrame(frame);
+
+          tooltipLine.attr('stroke', 'black')
+            .attr('x1', x(frame))
+            .attr('x2', x(frame))
+            .attr('y1', 0)
+            .attr('y2', height);
+          tooltip.html('Proximal unwrap (smoothed): ' + Math.floor(data[frame*100].prox_filtered) + 'bp<br>Distal unwrap (smoothed): ' + Math.floor(data[frame*100].dist_filtered) + 'bp')
+            .style('display', 'block')
+            .style('left', d3.event.pageX + 20)
+            .style('top', d3.event.pageY - 20)
+          /*        .selectAll()
+                  .data(data[frame])
+                  .append('div')
+                  .html(d => 1 ); */
+        }
+      })
+  })
 
 
 
@@ -315,11 +477,6 @@
       Show ARG LYS
     </label>
     
-    <input class="form-check-input " type="checkbox" name="xticks_check" value="" id="xticks_check">
-    <label class="form-check-label " for="xticks_check">
-      Show xticks representation
-    </label>
-        
 
     <input class="form-check-input " type="checkbox" name="highlight_DA_check" value="" id="highlight_DA_check">
     <label class="form-check-label " for="highlight_DA_check">
@@ -339,5 +496,4 @@
 
   </body>
 </html>
-
 
