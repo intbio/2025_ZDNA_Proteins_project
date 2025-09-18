@@ -1,1 +1,1 @@
-(TRJS)[MD_trjs/md_trajectories]
+[TRJS](MD_trjs/md_trajectories)
